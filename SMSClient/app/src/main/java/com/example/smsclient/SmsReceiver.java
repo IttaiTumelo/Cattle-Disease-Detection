@@ -37,13 +37,18 @@ import java.util.stream.IntStream;
 public class SmsReceiver extends BroadcastReceiver {
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 9;
 //    public List<String> contacts = new ArrayList<>();
-    float[][] intoms = new float[1][15];
+    float[][] intoms = new float[1][24];
     Context context;
     public String[] symptoms = {
-            "Fever","Loss Of Appetite", "Weight Loss", "Reduced Milk Production", "Coughing",
-            "Nasal Discharge", "Diarrhoea", "Constipation", "Difficulty Breathing", "Lameness",
-            "Swollen Joints", "Skin Lesions", "Bloating", "Dehydration", "Behavioural Change"};
-    String[] keywords = {"Fever", "Loss Of Appetite", "Weight Loss", "Reduced Milk Production", "Coughing", "Nasal Discharge", "Diarrhoea", "Constipation", "Difficulty Breathing", "Lameness", "Swollen Joints", "Skin Lesions", "Bloating", "Dehydration", "Behavioural Change"};
+            "Depression", "Painless lumps", "Loss of appetite", "Swelling in limb",
+            "Crackling sound", "Shortness of breath", "Sweats", "Chills", "Chest discomfort",
+            "Swelling in extremities", "Sores on hooves", "Lameness", "Difficulty walking",
+            "Blisters on gums", "Fatigue", "Swelling in muscle", "Sores on gums",
+            "Blisters on hooves", "Swelling in abdomen", "Blisters on mouth", "Swelling in neck",
+            "Blisters on tongue", "Sores on mouth", "Sores on tongue"
+            };
+    String[] keywords = symptoms;
+
     Messages currentMessage = new Messages();
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -77,97 +82,38 @@ public class SmsReceiver extends BroadcastReceiver {
                         }
                         Toast.makeText(context, "Saved Convos are "+ messages.size(), Toast.LENGTH_SHORT).show();
                         ArrayList<Messages> temp = messages.stream().filter(x -> x.sender.equals(sender)).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-                        if(!(temp.size() == 0)){
-                            //get the last message
-                            Toast.makeText(context, "Continuing conversation", Toast.LENGTH_SHORT).show();
-                            currentMessage = temp.get(temp.size()-1);
-                            if(currentMessage.stage == Stage.UserStarted) {
-                                sendSmsMessage(currentMessage);
-                                return;
-                            }
-                            if(currentMessage.stage == Stage.AskedForSymptom) {
-                                String symtoms = synthesiseSymptoms(message);
-                                int symptomsCount = symtoms.split(",").length;
-                                if (countOnes(checkStringForKeywords(message, keywords)) == 0) {
-                                    currentMessage.message = "Sorry, I didn't get that. Please try again.";
-                                    sendSmsMessage(currentMessage);
-                                    currentMessage.stage = Stage.SymptomNotCompleted;
-                                    updateMessages(currentMessage);
-                                    return;
-                                }
-                                if (countOnes(checkStringForKeywords(message, keywords)) < 2) {
-                                    currentMessage.message = "You have not provided enough symptoms. Please try again.";
-                                    sendSmsMessage(currentMessage);
-                                    currentMessage.stage = Stage.SymptomNotCompleted;
-                                    updateMessages(currentMessage);
-                                    return;
-                                }
-                                currentMessage.message = "I have received your symptoms. The symptoms you have provided are " +
-                                        symtoms + ". Please wait while I analyse your symptoms.";
-                                sendSmsMessage(currentMessage);
-                                currentMessage.stage = Stage.SymptomCompleted;
-                                updateMessages(currentMessage);
 
-                                Toast.makeText(context, symtoms, Toast.LENGTH_SHORT).show();
-                                String result =  predict(checkStringForKeywords(message, keywords));;
-                                currentMessage.stage = Stage.SendResponse;
-                                currentMessage.message = result;
-                                sendSmsMessage(currentMessage);
-                            }
-                            if(currentMessage.stage == Stage.SymptomCompleted) {
-                                String symtoms = synthesiseSymptoms(message);
-                                currentMessage.message = "Resetting Conversation";
-                                sendSmsMessage(currentMessage);
-                                currentMessage.stage = Stage.UserStarted;
-                                updateMessages(currentMessage);
-                            }
-                            if(currentMessage.stage == Stage.SymptomNotCompleted) {
-                                String symtoms = synthesiseSymptoms(message);
-                                int symptomsCount = symtoms.split(",").length;
-                                if (symptomsCount == 0) {
-                                    currentMessage.message = "Sorry, I didn't get that. Please try again.";
-                                    sendSmsMessage(currentMessage);
-                                    currentMessage.stage = Stage.SymptomNotCompleted;
-                                    updateMessages(currentMessage);
-                                    return;
-                                }
-                                if (countOnes(checkStringForKeywords(message, keywords)) < 2) {
-                                    currentMessage.message = "You have not provided enough symptoms. Please try again.";
-                                    sendSmsMessage(currentMessage);
-                                    currentMessage.stage = Stage.SymptomNotCompleted;
-                                    updateMessages(currentMessage);
-                                    return;
-                                }
-                                currentMessage.message = "I have received your symptoms. The symptoms you have provided are " +
-                                        symtoms + ". Please wait while I analyse your symptoms.";
-                                sendSmsMessage(currentMessage);
-                                currentMessage.stage = Stage.SymptomCompleted;
-                                updateMessages(currentMessage);
 
-                                Toast.makeText(context, symtoms, Toast.LENGTH_SHORT).show();
-                                String result = predict(checkStringForKeywords(message, keywords));
-                                currentMessage.stage = Stage.SendResponse;
-                                currentMessage.message = result;
-                                sendSmsMessage(currentMessage);
-                            }
-                            if(currentMessage.stage == Stage.SendResponse) {
 
-                            }
-                            currentMessage.stage = Stage.UserStarted;
-                            messages.add(currentMessage);
-                        }else{
-                            Toast.makeText(context, "New conversation", Toast.LENGTH_SHORT).show();
-                            currentMessage = new Messages();
-                            currentMessage.sender = sender;
-                            currentMessage.stage = Stage.UserStarted;
-                            messages.add(currentMessage);
-                            currentMessage.message = "Hello, cattle farmer. I am your cattle health assistant. Here is how i work.";
+//                        Toast.makeText(context, "New conversation", Toast.LENGTH_SHORT).show();
+                        currentMessage = new Messages();
+                        currentMessage.sender = sender;
+//                        currentMessage.stage = Stage.UserStarted;
+//                        messages.add(currentMessage);
+
+                        String symtoms = synthesiseSymptoms(message);
+                        int symptomsCount = symtoms.split(",").length;
+                        if (countOnes(checkStringForKeywords(message, keywords)) == 0) {
+                            currentMessage.message = "Hello, cattle farmer. I am your cattle health assistant. " +
+                                    "Here is how i work. Send your Symptoms and i will respond with the likelihood " +
+                                    "of your animal having foot and mouth or not, here are a lit of symptoms I will recognize:" +
+                                    "Depression, Painless lumps, Loss of appetite, Swelling in limb," +
+                                    "Crackling sound, Shortness of breath, Sweats, Chills, Chest discomfort," +
+                                    "Swelling in extremities, Sores on hooves, Lameness, Difficulty walking," +
+                                    "Blisters on gums, Fatigue, Swelling in muscle, Sores on gums," +
+                                    "Blisters on hooves, Swelling in abdomen, Blisters on mouth, Swelling in neck," +
+                                    "Blisters on tongue, Sores on mouth, Sores on tongue";
                             sendSmsMessage(currentMessage);
-                            currentMessage.stage = Stage.AskedForSymptom;
-                            updateMessages(currentMessage);
+//                        currentMessage.stage = Stage.AskedForSymptom;
+//                        updateMessages(currentMessage);
                         }
-
-
+                        currentMessage.message = "I have received your symptoms. Please wait while I analyse your symptoms.";
+                        sendSmsMessage(currentMessage);
+                        Toast.makeText(context, symtoms, Toast.LENGTH_SHORT).show();
+                        String result = predict(checkStringForKeywords(message, keywords));
+                        currentMessage.message = result;
+                        sendSmsMessage(currentMessage);
+                        return;
                     }
                 }
             }
@@ -175,8 +121,6 @@ public class SmsReceiver extends BroadcastReceiver {
     }
 
     private String synthesiseSymptoms(String message) {
-
-
 
 
         for (int i = 0; i < symptoms.length; i++) {
@@ -227,7 +171,6 @@ public class SmsReceiver extends BroadcastReceiver {
         public String message;
         public MessageTypes messageType;
         public Date date;
-        public Stage stage;
         public Messages() {
 
         }
@@ -236,7 +179,6 @@ public class SmsReceiver extends BroadcastReceiver {
             this.message = message;
             this.messageType = messageType;
             this.date = new Date();
-            this.stage = Stage.UserStarted;
         }
     }
 
@@ -245,18 +187,10 @@ public class SmsReceiver extends BroadcastReceiver {
         Receiver,
     }
 
-    enum Stage {
-        UserStarted,
-        AskedForSymptom,
-        ReceivedSymptoms,
-        SymptomNotCompleted,
-        SymptomCompleted,
-        SendResponse,
-    }
 
     public float[][] checkStringForKeywords(String inputString, String[] keywords) {
         // create an array of 15 integers to store the output
-        float[][] output = new float[1][15];
+        float[][] output = new float[1][24];
         // convert the input string to lowercase using the toLowerCase() method[^1^][1]
         inputString = inputString.toLowerCase();
         // loop through the keywords array
@@ -278,49 +212,12 @@ public class SmsReceiver extends BroadcastReceiver {
 
     public String predict(float[][] symptoms){
 
-        String[] diseases = {"Bovine Respiratory Disease"
-                ,"Mastitis"
-                ,"Parasitic Gastroenteritis"
-                ,"Bloat"
-                ,"Johne's Disease"
-                ,"Foot-and-Mouth Disease"
-                ,"Bovine Viral Diarrhea"
-                ,"Ketosis"
-                ,"Mycoplasma Bovis"
-                ,"Malignant Catarrhal Fever"
-                ,"Salmonellosis"
-                ,"Neosporosis"
-                ,"Mastocytoma"
-                ,"Rift Valley Fever"
-                ,"Calf Scours"
-                ,"Trichomoniasis"
-                ,"Lead Poisoning"
-                ,"Botulism"
-                ,"Botulism"
-                ,"Leptospirosis"
-                ,"Brucellosis"
-                ,"Laminitis"
-                ,"Haemonchosis"
-                ,"Pseudocowpox"
-                ,"Johnin Disease"
-                ,"Bacterial Vaginosis"
-                ,"Bracken Poisoning"
-                ,"Bluetongue"
-                ,"Orf"
-                ,"Haemorrhagic Septicemia"
-                ,"Dermatophilosis"
-                ,"Chlamydiosis"
-                ,"Cryptosporidiosis"
-                ,"Coccidiosis"
-                ,"Clostridial Diseases"
-                ,"Anaplasmosis"
-                ,"Blackleg"
-                ,"Malignant Oedema"
-                ,"Babesiosis"
-                ,"Actinobacillosis"};
+        String[] diseases = {
+                "Foot and Mouth"
+                ,"no Foot and Mouth"};
 
 //        int inputSize = 15; // The number of features in your input data
-        int outputSize = 40; // The number of classes in your output data
+        int outputSize = 2; // The number of classes in your output data
 //        float[][] inputTensor = new float[1][inputSize]; // A 2D array to hold the input data
         float[][] outputTensor = new float[1][outputSize]; // A 2D array to hold the output data
 
@@ -369,7 +266,11 @@ public class SmsReceiver extends BroadcastReceiver {
         int maxIndex = IntStream.range(0, outputTensor[0].length)
                 .reduce((i, j) -> outputTensor[0][i] > outputTensor[0][j] ? i : j)
                 .getAsInt();
-        return diseases[maxIndex] + " " + outputTensor[0][maxIndex]*100 + "%";
+        String result;
+
+        return "Given your symptom, there is a " + outputTensor[0][maxIndex]*100 + "% chance that you have " + diseases[maxIndex] + ". However, you are advised to visit your local vet " ;
+
+//        return diseases[maxIndex] + " " + outputTensor[0][maxIndex]*100 + "%";
 //        return "The output tensor is: " + Arrays.toString(outputTensor[0]);
     }
 

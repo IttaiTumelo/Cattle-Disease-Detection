@@ -107,49 +107,12 @@ public class MainActivity extends AppCompatActivity {
 
     public String predict(float[][] symptoms){
 
-        String[] diseases = {"Bovine Respiratory Disease"
-                ,"Mastitis"
-                ,"Parasitic Gastroenteritis"
-                ,"Bloat"
-                ,"Johne's Disease"
-                ,"Foot-and-Mouth Disease"
-                ,"Bovine Viral Diarrhea"
-                ,"Ketosis"
-                ,"Mycoplasma Bovis"
-                ,"Malignant Catarrhal Fever"
-                ,"Salmonellosis"
-                ,"Neosporosis"
-                ,"Mastocytoma"
-                ,"Rift Valley Fever"
-                ,"Calf Scours"
-                ,"Trichomoniasis"
-                ,"Lead Poisoning"
-                ,"Botulism"
-                ,"Botulism"
-                ,"Leptospirosis"
-                ,"Brucellosis"
-                ,"Laminitis"
-                ,"Haemonchosis"
-                ,"Pseudocowpox"
-                ,"Johnin Disease"
-                ,"Bacterial Vaginosis"
-                ,"Bracken Poisoning"
-                ,"Bluetongue"
-                ,"Orf"
-                ,"Haemorrhagic Septicemia"
-                ,"Dermatophilosis"
-                ,"Chlamydiosis"
-                ,"Cryptosporidiosis"
-                ,"Coccidiosis"
-                ,"Clostridial Diseases"
-                ,"Anaplasmosis"
-                ,"Blackleg"
-                ,"Malignant Oedema"
-                ,"Babesiosis"
-                ,"Actinobacillosis"};
+        String[] diseases = {
+                "Foot and Mouth"
+                ,"No Foot and Mouth"};
 
-//        int inputSize = 15; // The number of features in your input data
-        int outputSize = 40; // The number of classes in your output data
+//        int inputSize = 24; // The number of features in your input data
+        int outputSize = 2; // The number of classes in your output data
 //        float[][] inputTensor = new float[1][inputSize]; // A 2D array to hold the input data
         float[][] outputTensor = new float[1][outputSize]; // A 2D array to hold the output data
 
