@@ -39,7 +39,7 @@ public class FirstFragment extends Fragment {
                         .navigate(R.id.action_FirstFragment_to_SecondFragment);
             }
         });
-        binding.textviewTensor.setText("Hello World! from Ittai");
+        binding.textviewTensor.setText("Hello World! from Moonga");
 //        String tensor = ((MainActivity) getActivity()).predict();
 //        binding.textviewTensor.setText(tensor);
         readSMS();

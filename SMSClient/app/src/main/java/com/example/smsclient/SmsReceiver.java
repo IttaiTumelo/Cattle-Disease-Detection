@@ -38,6 +38,7 @@ public class SmsReceiver extends BroadcastReceiver {
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 9;
 //    public List<String> contacts = new ArrayList<>();
     float[][] intoms = new float[1][24];
+    List<String> foundSymptoms = new ArrayList<>();
     Context context;
     public String[] symptoms = {
             "Depression", "Painless lumps", "Loss of appetite", "Swelling in limb",
@@ -268,7 +269,7 @@ public class SmsReceiver extends BroadcastReceiver {
                 .getAsInt();
         String result;
 
-        return "Given your symptom, there is a " + outputTensor[0][maxIndex]*100 + "% chance that you have " + diseases[maxIndex] + ". However, you are advised to visit your local vet " ;
+        return "Based on the symptoms you have given, there is a " + outputTensor[0][maxIndex]*100 + "% chance that you have " + diseases[maxIndex] + "" ;
 
 //        return diseases[maxIndex] + " " + outputTensor[0][maxIndex]*100 + "%";
 //        return "The output tensor is: " + Arrays.toString(outputTensor[0]);
