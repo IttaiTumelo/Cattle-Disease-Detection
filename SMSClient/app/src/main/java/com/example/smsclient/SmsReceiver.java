@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Message;
 import android.telephony.SmsManager;
 import android.telephony.SmsMessage;
+import android.util.Log;
 import android.widget.Toast;
 import android.Manifest;
 
@@ -18,6 +19,8 @@ import androidx.core.content.ContextCompat;
 
 import org.checkerframework.checker.units.qual.A;
 import org.checkerframework.checker.units.qual.C;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.tensorflow.lite.Interpreter;
 
 import java.io.FileInputStream;
@@ -33,10 +36,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+
 
 public class SmsReceiver extends BroadcastReceiver {
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 9;
 //    public List<String> contacts = new ArrayList<>();
+
+    static String text = "", myResponse = "";
+
+    public static final MediaType JSON
+            = MediaType.get("application/json; charset=utf-8");
+
+    OkHttpClient client = new OkHttpClient();
     float[][] intoms = new float[1][24];
     List<String> foundSymptoms = new ArrayList<>();
     Context context;
@@ -89,36 +104,83 @@ public class SmsReceiver extends BroadcastReceiver {
 //                        Toast.makeText(context, "New conversation", Toast.LENGTH_SHORT).show();
                         currentMessage = new Messages();
                         currentMessage.sender = sender;
-//                        currentMessage.stage = Stage.UserStarted;
-//                        messages.add(currentMessage);
 
-                        String symtoms = synthesiseSymptoms(message);
-                        int symptomsCount = symtoms.split(",").length;
-                        if (countOnes(checkStringForKeywords(message, keywords)) == 0) {
-                            currentMessage.message = "Hello, cattle farmer. I am your cattle health assistant. " +
-                                    "Here is how i work. Send your Symptoms and i will respond with the likelihood " +
-                                    "of your animal having foot and mouth or not, here are a lit of symptoms I will recognize:" +
-                                    "Depression, Painless lumps, Loss of appetite, Swelling in limb," +
-                                    "Crackling sound, Shortness of breath, Sweats, Chills, Chest discomfort," +
-                                    "Swelling in extremities, Sores on hooves, Lameness, Difficulty walking," +
-                                    "Blisters on gums, Fatigue, Swelling in muscle, Sores on gums," +
-                                    "Blisters on hooves, Swelling in abdomen, Blisters on mouth, Swelling in neck," +
-                                    "Blisters on tongue, Sores on mouth, Sores on tongue";
-                            sendSmsMessage(currentMessage);
-//                        currentMessage.stage = Stage.AskedForSymptom;
-//                        updateMessages(currentMessage);
-                        }
+
                         currentMessage.message = "I have received your symptoms. Please wait while I analyse your symptoms.";
                         sendSmsMessage(currentMessage);
-                        Toast.makeText(context, symtoms, Toast.LENGTH_SHORT).show();
-                        String result = predict(checkStringForKeywords(message, keywords));
-                        currentMessage.message = result;
-                        sendSmsMessage(currentMessage);
+                        //////call api
+                        callAPI(message);
                         return;
                     }
                 }
             }
         }
+    }
+
+    void callAPI(String prompt ) {
+        JSONObject json = new JSONObject();
+        try {
+            json.put("model", "text-davinci-003");
+            json.put("prompt", "here is a list of cattle symptoms, \"Depression, Painless lumps, " +
+                    "Loss of appetite, swelling in limb, Crackling sound, Shortness of breath, Sweats, Chills, Chest discomfort, swelling in \n" +
+                    " extremities, Sores on hooves, Lameness, Difficulty walking, Blisters on gums, " +
+                    "Fatigue, swelling in muscle, Sores on gums, Blisters on hooves, swelling in abdomen, " +
+                    "Blisters on mouth, Swelling in neck, Blisters on tongue, Sores on mouth., Sores on tongue.\"\n" +
+                    "and here is the message from my app user: ' "+ prompt + "'\n" +
+                    "give me a list of symptoms in the from my original list that are present in the user's message.\n" +
+                    "\n" +
+                    "if none are found, starting with 'Sorry' respond as if you are a doctor for cattle telling the farmer that he has not " +
+                    "provided enough information for you to diagnose, and that I should go to the vet for proper and " +
+                    "more in-depth diagnosis. if some are found, starting with 'Diseases: ' encourage that a vet be visited regardless" );
+            json.put("max_tokens", 40);
+            json.put("temperature", 0);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        RequestBody body = RequestBody.create(json.toString(), JSON);
+        Request request = new Request.Builder()
+                .url("https://api.openai.com/v1/completions")
+                .addHeader("Authorization", "Bearer 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")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new okhttp3.Callback() {
+            @Override
+            public void onFailure(okhttp3.Call call, IOException e) {
+                Toast.makeText(context, "Failed to connect to API", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onResponse(okhttp3.Call call, okhttp3.Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    myResponse = response.body().string();
+                    try {
+                        JSONObject json = new JSONObject(myResponse);
+                        text = json.getJSONArray("choices").getJSONObject(0).getString("text");
+                        Log.d("TAG", "GPT-First-Response: " + text);
+                        if(text.contains("Sorry")){
+                            currentMessage.message = text;
+                            sendSmsMessage(currentMessage);
+                            return;
+                        }
+                        String result = predict(checkStringForKeywords(myResponse, keywords));
+                        currentMessage.message = result;
+                        sendSmsMessage(currentMessage);
+
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+//
+//        currentMessage.message = text;
+//        sendSmsMessage(currentMessage);
+
+
+
+
     }
 
     private String synthesiseSymptoms(String message) {
@@ -159,11 +221,30 @@ public class SmsReceiver extends BroadcastReceiver {
     }
 
     public void sendSmsMessage(Messages message) {
+        String s = message.message;
+        int len = s.length(); // get the length of the original string
+        int num = len / 120; // get the number of strings you need
+        if (len % 120 != 0) { // if there is a remainder, add one more string
+            num++;
+        }
+        String[] arr = new String[num]; // create an array of strings with size num
+        for (int i = 0; i < num; i++) { // loop through the number of strings
+            int start = i * 120; // calculate the starting index of each substring
+            int end = start + 120; // calculate the ending index of each substring
+            if (end > len) { // if the ending index is greater than the length of the original string, use the length as the ending index
+                end = len;
+            }
+            arr[i] = s.substring(start, end); // copy the substring into the array element
+        }
+        for (int i = 0; i < arr.length; i++) { // loop through the array of strings
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(message.sender, null, arr[i], null, null);
+        }
         Toast.makeText(context, "Sending message", Toast.LENGTH_SHORT).show();
         Toast.makeText(context, message.message, Toast.LENGTH_SHORT).show();
-        SmsManager smsManager = SmsManager.getDefault();
-        String word = message.message;
-        smsManager.sendTextMessage(message.sender, null, word + " .", null, null);
+//        SmsManager smsManager = SmsManager.getDefault();
+//        String word = message.message;
+//        smsManager.sendTextMessage(message.sender, null, word + " .", null, null);
 
     }
 
@@ -227,23 +308,6 @@ public class SmsReceiver extends BroadcastReceiver {
         try {
             AssetFileDescriptor fileDescriptor = context.getAssets().openFd("disease_model.tflite");
 
-
-//            // Fill the input tensor with some example symptoms
-//            inputTensor[0][0] = 1; // fever
-//            inputTensor[0][1] = 0; // cough
-//            inputTensor[0][2] = 0; // sore throat
-//            inputTensor[0][3] = 1; // headache
-//            inputTensor[0][4] = 0; // runny nose
-//            inputTensor[0][5] = 0; // shortness of breath
-//            inputTensor[0][6] = 0; // chest pain
-//            inputTensor[0][7] = 0; // nausea
-//            inputTensor[0][8] = 0; // vomiting
-//            inputTensor[0][9] = 1; // fatigue
-//            inputTensor[0][10] = 0; // diarrhea
-//            inputTensor[0][11] = 0; // rash
-//            inputTensor[0][12] = 0; // muscle pain
-//            inputTensor[0][13] = 0; // muscle pain
-//            inputTensor[0][14] = 0; // muscle pain
             FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
             FileChannel fileChannel = inputStream.getChannel();
             long startOffset = fileDescriptor.getStartOffset();
