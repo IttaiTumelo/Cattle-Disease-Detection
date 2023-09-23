@@ -141,7 +141,7 @@ public class SmsReceiver extends BroadcastReceiver {
         RequestBody body = RequestBody.create(json.toString(), JSON);
         Request request = new Request.Builder()
                 .url("https://api.openai.com/v1/completions")
-                .addHeader("Authorization", "Bearer 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")
+                .addHeader("Authorization", "Bearer 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")
                 .post(body)
                 .build();
 
@@ -171,6 +171,11 @@ public class SmsReceiver extends BroadcastReceiver {
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
+                }
+                else {
+                    currentMessage.message = "I failed to connect to the API. Please try again later. The Issue is " + response.body().string();
+                    sendSmsMessage(currentMessage);
+                    return;
                 }
             }
         });
@@ -240,8 +245,8 @@ public class SmsReceiver extends BroadcastReceiver {
             SmsManager smsManager = SmsManager.getDefault();
             smsManager.sendTextMessage(message.sender, null, arr[i], null, null);
         }
-        Toast.makeText(context, "Sending message", Toast.LENGTH_SHORT).show();
-        Toast.makeText(context, message.message, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(context, "Sending message", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(context, message.message, Toast.LENGTH_SHORT).show();
 //        SmsManager smsManager = SmsManager.getDefault();
 //        String word = message.message;
 //        smsManager.sendTextMessage(message.sender, null, word + " .", null, null);
@@ -321,7 +326,7 @@ public class SmsReceiver extends BroadcastReceiver {
             interpreter = new Interpreter(modelBuffer);
             // Run the inference and get the output data
             interpreter.run(symptoms, outputTensor);
-            Toast.makeText(context, "The output tensor is: " + Arrays.toString(outputTensor[0]), Toast.LENGTH_SHORT).show();
+//            Toast.makeText(context, "The output tensor is: " + Arrays.toString(outputTensor[0]), Toast.LENGTH_SHORT).show();
             System.out.println("The output tensor is: " + Arrays.toString(outputTensor[0]));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -333,7 +338,7 @@ public class SmsReceiver extends BroadcastReceiver {
                 .getAsInt();
         String result;
 
-        return "Based on the symptoms you have given, there is a " + outputTensor[0][maxIndex]*100 + "% chance that you have " + diseases[maxIndex] + "" ;
+        return "Based on the symptoms you have given, there is a " + outputTensor[0][maxIndex]*100 + "% chance that you have " + diseases[maxIndex] + ". Please contact the local veterinary officer at +260971638056 for further diagnosis " ;
 
 //        return diseases[maxIndex] + " " + outputTensor[0][maxIndex]*100 + "%";
 //        return "The output tensor is: " + Arrays.toString(outputTensor[0]);
